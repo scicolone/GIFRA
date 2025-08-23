@@ -21,15 +21,15 @@ session_start();
         }
 
         header {
-            background-color: #b71c1c; /* rosso */
+            background: linear-gradient(135deg, #b71c1c 0%, #0d47a1 100%);
             color: white;
-            padding: 40px 20px;
+            padding: 60px 20px;
             text-align: center;
         }
 
         header img {
             max-width: 160px;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
 
         header h1 {
@@ -41,10 +41,11 @@ session_start();
             font-size: 16px;
             max-width: 600px;
             margin: 0 auto;
+            opacity: 0.9;
         }
 
         .cta {
-            background-color: #0d47a1; /* blu */
+            background-color: #0d47a1;
             padding: 60px 20px;
             text-align: center;
         }
@@ -89,7 +90,7 @@ session_start();
 </section>
 
 <footer>
-    &copy; 2025 ASD Gi.Fra. Milazzo - Piazza San Papino, 3 - Milazzo (ME)
+    &copy; 2025 ASD Gi.Fra. Milazzo - Piazza San Papino, 33 – 98057 Milazzo (ME)
 </footer>
 
 </body>
