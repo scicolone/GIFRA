@@ -8,49 +8,89 @@ session_start();
     <title>ASD Gi.Fra. Milazzo</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body {
+        * {
             margin: 0;
-            font-family: Arial, sans-serif;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f4f4f4;
+            color: #333;
         }
+
         header {
-            background-color: #b71c1c;
+            background-color: #b71c1c; /* rosso */
             color: white;
-            padding: 20px;
-            text-align: center;
-        }
-        header img {
-            max-width: 150px;
-        }
-        .container {
             padding: 40px 20px;
             text-align: center;
         }
-        .btn {
-            background-color: #0d47a1;
-            color: white;
+
+        header img {
+            max-width: 160px;
+            margin-bottom: 15px;
+        }
+
+        header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            font-size: 16px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .cta {
+            background-color: #0d47a1; /* blu */
+            padding: 60px 20px;
+            text-align: center;
+        }
+
+        .cta a {
+            display: inline-block;
+            background-color: white;
+            color: #0d47a1;
             padding: 15px 30px;
             margin: 10px;
-            border: none;
             border-radius: 5px;
-            font-size: 16px;
-            cursor: pointer;
+            font-weight: bold;
             text-decoration: none;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
         }
-        .btn:hover {
-            background-color: #083083;
+
+        .cta a:hover {
+            background-color: #e3f2fd;
+        }
+
+        footer {
+            background-color: #b71c1c;
+            color: white;
+            text-align: center;
+            padding: 15px;
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
+
 <header>
     <img src="Logo GiFra nuovo.png" alt="Logo Gi.Fra. Milazzo">
     <h1>Benvenuti nella famiglia del Gi.Fra. Milazzo</h1>
-    <p>Società Sportiva Dilettantistica - Formiamo giovani calciatori con passione e valori.</p>
+    <p>Società Sportiva Dilettantistica - Formiamo giovani calciatori con passione, professionalità e valori sportivi.</p>
 </header>
-<div class="container">
-    <a href="login.php" class="btn">Accedi</a>
-    <a href="registrazione.php" class="btn">Iscrivi tuo figlio</a>
-</div>
+
+<section class="cta">
+    <a href="login.php">Accedi all'Area Riservata</a>
+    <a href="registrazione.php">Iscrivi tuo figlio</a>
+</section>
+
+<footer>
+    &copy; 2025 ASD Gi.Fra. Milazzo - Piazza San Papino, 3 - Milazzo (ME)
+</footer>
+
 </body>
 </html>
