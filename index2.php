@@ -18,7 +18,7 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      background-image: url('Logo GiFra nuovo.png'); /* Logo come sfondo */
+      background-image: url('Logo-GiFra-nuovo.gif'); /* Logo come sfondo */
       background-size: contain;         /* Adatta il logo */
       background-repeat: no-repeat;
       background-position: center;
