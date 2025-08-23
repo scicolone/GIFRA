@@ -28,8 +28,14 @@ session_start();
         }
 
         header img {
-            max-width: 160px;
-            margin-bottom: 20px;
+    max-width: 160px;
+    margin-bottom: 20px;
+    /* rimuove l'alone bianco residuo */
+    filter: drop-shadow(0 0 0 transparent) brightness(1.05) contrast(1.05);
+    /* oppure, se l'alone è solo un bordo, usiamo una maschera */
+    -webkit-mask-image: radial-gradient(circle, black 95%, transparent 100%);
+    mask-image: radial-gradient(circle, black 95%, transparent 100%);
+}
         }
 
         header h1 {
