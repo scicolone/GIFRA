@@ -144,6 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </form>
 
         <a href="registrazione.php">Non hai un account? Registrati</a>
+        <a href="index.php" style="text-align:center;display:block;margin-top:10px;">← Torna alla Home</a>
     </div>
 </body>
 </html>
