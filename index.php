@@ -43,7 +43,7 @@ session_start();
 <body>
 
 <header>
-    <img src="Logo GiFra nuovo.png" alt="Logo Gi.Fra. Milazzo">
+    <img src="Logo_GiFra_nuovo.SVG" alt="Logo Gi.Fra. Milazzo">
     <h1>Benvenuti nella famiglia del Gi.Fra. Milazzo</h1>
     <p>Società Sportiva Dilettantistica – Formiamo giovani calciatori con passione, professionalità e valori sportivi.</p>
 </header>
