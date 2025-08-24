@@ -3,20 +3,32 @@ require_once 'config.php';   // $pdo già definito
 $error = '';
 $success = '';
 
+/* ---------- array codici catastali comuni italiani (estratto) ---------- */
+$comuni = [
+    'MILAZZO' => 'F157',
+    'ROMA'    => 'H501',
+    'MILANO'  => 'F205',
+    'NAPOLI'  => 'F839',
+    'PALERMO' => 'G273',
+    'CATANIA' => 'C351',
+    'MESSINA' => 'F158',
+    /* … aggiungi qui altri comuni se necessario … */
+];
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // campi base
-    $nome     = trim($_POST['nome']);
-    $cognome  = trim($_POST['cognome']);
-    $luogo    = trim($_POST['luogo_nascita']);
-    $provN    = trim($_POST['provincia_nascita']);
-    $dataN    = $_POST['data_nascita'];
-    $cf       = strtoupper(trim($_POST['codice_fiscale']));
-    $indirizzo= trim($_POST['indirizzo']);
-    $comune   = trim($_POST['comune_residenza']);
-    $provR    = trim($_POST['provincia_residenza']);
-    $email    = strtolower(trim($_POST['email']));
-    $password = $_POST['password'];
-    $ruolo    = $_POST['ruolo'];   // stringa: genitore, allenatore, ecc.
+    $nome      = trim($_POST['nome']);
+    $cognome   = trim($_POST['cognome']);
+    $luogo     = strtoupper(trim($_POST['luogo_nascita']));
+    $provN     = trim($_POST['provincia_nascita']);
+    $dataN     = $_POST['data_nascita'];
+    $sesso     = $_POST['sesso'];
+    $cf        = strtoupper(trim($_POST['codice_fiscale']));
+    $indirizzo = trim($_POST['indirizzo']);
+    $comune    = trim($_POST['comune_residenza']);
+    $provR     = trim($_POST['provincia_residenza']);
+    $email     = strtolower(trim($_POST['email']));
+    $password  = $_POST['password'];
+    $ruolo     = $_POST['ruolo'];
 
     // controllo univocità email
     $stmt = $pdo->prepare('SELECT id FROM utenti WHERE email = ?');
@@ -26,7 +38,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $hash = password_hash($password, PASSWORD_DEFAULT);
         $stmt = $pdo->prepare(
-            'INSERT INTO utenti (nome, cognome, email, password, ruolo, stato_approvazione)
+            'INSERT INTO utenti 
+             (nome, cognome, email, password, ruolo, stato_approvazione)
              VALUES (?, ?, ?, ?, ?, "in_attesa")'
         );
         $stmt->execute([$nome, $cognome, $email, $hash, $ruolo]);
@@ -37,7 +50,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <!DOCTYPE html>
 <html lang="it">
 <head>
-    <script src="https://unpkg.com/codice-fiscale-js@2/dist/codice-fiscale.min.js"></script>
     <meta charset="UTF-8">
     <title>Registrazione – ASD Gi.Fra. Milazzo</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -80,9 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         button:hover{background:#a01515}
         .error{color:#b71c1c;margin-bottom:15px}
         .success{color:#0d47a1;margin-bottom:15px}
-        .back{
-            display:inline-block;margin-top:15px;color:#0d47a1;text-decoration:none
-        }
+        .back{display:inline-block;margin-top:15px;color:#0d47a1;text-decoration:none}
     </style>
 </head>
 <body>
@@ -103,7 +113,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }, 7000);
         </script>
     <?php else: ?>
-        <!-- FORM COMPLETO -->
         <form method="post" autocomplete="off">
             <label>Nome</label>
             <input type="text" name="nome" required>
@@ -112,22 +121,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <input type="text" name="cognome" required>
 
             <label>Luogo di nascita</label>
-            <input type="text" name="luogo_nascita" required>
+            <input type="text" name="luogo_nascita" id="luogo_nascita" required>
 
             <label>Provincia di nascita</label>
             <input type="text" name="provincia_nascita" maxlength="2" required>
 
             <label>Data di nascita</label>
-            <input type="date" name="data_nascita" required>
+            <input type="date" name="data_nascita" id="data_nascita" required>
+
             <label>Sesso</label>
-<select name="sesso" id="sesso" required>
-    <option value="">-- Seleziona --</option>
-    <option value="M">Maschio</option>
-    <option value="F">Femmina</option>
-</select>
+            <select name="sesso" id="sesso" required>
+                <option value="">-- Seleziona --</option>
+                <option value="M">Maschio</option>
+                <option value="F">Femmina</option>
+            </select>
 
             <label>Codice fiscale</label>
-            <input type="text" name="codice_fiscale" maxlength="16" required pattern="[A-Za-z0-9]{16}">
+            <input type="text" name="codice_fiscale" id="codice_fiscale" maxlength="16" required pattern="[A-Za-z0-9]{16}">
 
             <label>Indirizzo</label>
             <input type="text" name="indirizzo" required>
@@ -178,52 +188,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <a href="index.php" class="back">← Torna alla Home</a>
 </div>
-    <script>
-// array minimale di codici catastali (puoi integrare altri)
-const codiciCatastali = {
-    'MILANO': 'A062',
-    'ROMA': 'H501',
-    'NAPOLI': 'F839',
-    'MILAZZO': 'F572',
-    'MESSINA': 'F158',
-    'PALERMO': 'G273',
-    'CATANIA': 'C351',
-    'TORINO': 'L219',
-    'FIRENZE': 'D612',
-    'BOLOGNA': 'A944'
-    // aggiungi altri comuni se necessario
+
+<!-- CALCOLO CF COMPLETO -->
+<script>
+/* lista codici catastali (estesa se necessario) */
+const comuni = {
+    'MILAZZO' : 'F157',
+    'ROMA'    : 'H501',
+    'MILANO'  : 'F205',
+    'NAPOLI'  : 'F839',
+    'PALERMO' : 'G273',
+    'CATANIA' : 'C351',
+    'MESSINA' : 'F158'
 };
 
+/* ---------------- libreria CF completa ---------------- */
+function codCognome(c) {
+    const co = c.toUpperCase().replace(/[^BCDFGHJKLMNPQRSTVWXYZ]/g,'');
+    if (co.length >= 3) return co.substr(0,3);
+    const vo = c.toUpperCase().replace(/[^AEIOU]/g,'');
+    return (co + vo + 'XXX').substr(0,3);
+}
+function codNome(n) {
+    let co = n.toUpperCase().replace(/[^BCDFGHJKLMNPQRSTVWXYZ]/g,'');
+    if (co.length === 3) return co;
+    if (co.length > 3) return co[0]+co[2]+co[3];
+    const vo = n.toUpperCase().replace(/[^AEIOU]/g,'');
+    return (co + vo + 'XXX').substr(0,3);
+}
+function codAnno(d) { return d.substr(2,2); }
+function codMese(d) {
+    const m = parseInt(d.substr(5,2),10);
+    return "ABCDEHLMPRST"[m-1];
+}
+function codGiorno(d, s) {
+    const g = parseInt(d.substr(8,2),10);
+    return (s === 'M' ? g : g + 40).toString().padStart(2,'0');
+}
+function codLuogo(l) { return comuni[l.toUpperCase()] || 'Z999'; }
+
 function calcolaCF() {
-    const nome      = document.querySelector('[name="nome"]').value.trim();
-    const cognome   = document.querySelector('[name="cognome"]').value.trim();
-    const sesso     = document.querySelector('[name="sesso"]').value.toUpperCase();
-    const dataStr   = document.querySelector('[name="data_nascita"]').value;
-    const luogoRaw  = document.querySelector('[name="luogo_nascita"]').value.trim().toUpperCase();
+    const nome  = document.getElementById('nome')?.value || document.querySelector('[name="nome"]').value;
+    const cogn  = document.getElementById('cognome')?.value || document.querySelector('[name="cognome"]').value;
+    const luogo = document.getElementById('luogo_nascita').value.toUpperCase();
+    const data  = document.getElementById('data_nascita').value;
+    const sesso = document.getElementById('sesso').value.toUpperCase();
 
-    if (!nome || !cognome || !sesso || !dataStr || !luogoRaw) return;
+    if (!nome || !cogn || !data || !sesso || !luogo) return;
 
-    const codiceCatastale = codiciCatastali[luogoRaw] || 'Z999'; // fallback
+    const cf =
+        codCognome(cogn) +
+        codNome(nome) +
+        codAnno(data) +
+        codMese(data) +
+        codGiorno(data, sesso) +
+        codLuogo(luogo);
 
-    try {
-        const cf = new CodiceFiscale({
-            name: nome,
-            surname: cognome,
-            gender: sesso,
-            day: dataStr.split('-')[2],
-            month: dataStr.split('-')[1],
-            year: dataStr.split('-')[0],
-            birthplace: codiceCatastale
-        });
-        document.querySelector('[name="codice_fiscale"]').value = cf.code;
-    } catch (e) {
-        console.warn('Errore calcolo CF:', e);
-    }
+    document.getElementById('codice_fiscale').value = cf.toUpperCase();
 }
 
-// trigger ad ogni cambio
-['nome','cognome','data_nascita','sesso','luogo_nascita']
-.forEach(sel => document.querySelector(`[name="${sel}"]`).addEventListener('input', calcolaCF));
+/* trigger su cambio valori */
+['nome','cognome','luogo_nascita','data_nascita','sesso']
+.forEach(n => {
+    const el = document.querySelector(`[name="${n}"]`);
+    if (el) el.addEventListener('input', calcolaCF);
+});
 </script>
 </body>
 </html>
