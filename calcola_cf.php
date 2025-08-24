@@ -15,11 +15,25 @@ if (!$cognome || !$nome || !$data || !$sesso || !$luogo) {
     exit('Parametri mancanti');
 }
 
+// carica la lista ufficiale dei comuni con codice catastale
+$comuni = json_decode(file_get_contents(__DIR__ . '/lib/comuni.json'), true);
+$codice = '';
+foreach ($comuni as $c) {
+    if (strcasecmp($c['nome'], $luogo) === 0) {
+        $codice = $c['codiceCatastale'];
+        break;
+    }
+}
+if (!$codice) {
+    http_response_code(404);
+    exit('Comune non trovato');
+}
+
 $cf = new CodiceFiscale();
 $cf->setCognome($cognome)
    ->setNome($nome)
    ->setData($data)
    ->setSesso($sesso)
-   ->setComune($luogo);
+   ->setComune($codice);
 
 echo $cf->getCodiceFiscale();
