@@ -16,7 +16,7 @@ if (!$cognome || !$nome || !$data || !$sesso || !$luogo) {
 }
 
 // carica la lista ufficiale dei comuni con codice catastale
-$comuni = json_decode(file_get_contents(__DIR__ . '/lib/comuni.json'), true);
+$comuni = json_decode(file_get_contents('https://cdn.jsdelivr.net/npm/comuni-json@1.0.0/comuni.json'), true);
 $codice = '';
 foreach ($comuni as $c) {
     if (strcasecmp($c['nome'], $luogo) === 0) {
