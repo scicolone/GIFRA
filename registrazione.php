@@ -37,6 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <!DOCTYPE html>
 <html lang="it">
 <head>
+    <script src="https://unpkg.com/codice-fiscale-js@2/dist/codice-fiscale.min.js"></script>
     <meta charset="UTF-8">
     <title>Registrazione – ASD Gi.Fra. Milazzo</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -178,56 +179,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <a href="index.php" class="back">← Torna alla Home</a>
 </div>
     <script>
-// Calcolo Codice Fiscale (semplificato)
+// array minimale di codici catastali (puoi integrare altri)
+const codiciCatastali = {
+    'MILANO': 'A062',
+    'ROMA': 'H501',
+    'NAPOLI': 'F839',
+    'MILAZZO': 'F572',
+    'MESSINA': 'F158',
+    'PALERMO': 'G273',
+    'CATANIA': 'C351',
+    'TORINO': 'L219',
+    'FIRENZE': 'D612',
+    'BOLOGNA': 'A944'
+    // aggiungi altri comuni se necessario
+};
+
 function calcolaCF() {
-    const nome = document.querySelector('[name="nome"]').value.trim();
-    const cognome = document.querySelector('[name="cognome"]').value.trim();
-    const luogo = document.querySelector('[name="luogo_nascita"]').value.trim().toUpperCase();
-    const data = document.querySelector('[name="data_nascita"]').value;
-    const sesso = document.querySelector('[name="sesso"]').value.toUpperCase();
+    const nome      = document.querySelector('[name="nome"]').value.trim();
+    const cognome   = document.querySelector('[name="cognome"]').value.trim();
+    const sesso     = document.querySelector('[name="sesso"]').value.toUpperCase();
+    const dataStr   = document.querySelector('[name="data_nascita"]').value;
+    const luogoRaw  = document.querySelector('[name="luogo_nascita"]').value.trim().toUpperCase();
 
-    if (!nome || !cognome || !data || !sesso || !luogo) return;
+    if (!nome || !cognome || !sesso || !dataStr || !luogoRaw) return;
 
-    // funzione di codifica consonanti/vocali per cognome/nome
-    function codCognome(c) {
-        const consonanti = c.replace(/[^BCDFGHJKLMNPQRSTVWXYZ]/gi,'').toUpperCase();
-        if (consonanti.length >= 3) return consonanti.substr(0,3);
-        const vocali = c.replace(/[^AEIOU]/gi,'').toUpperCase();
-        return (consonanti + vocali + 'XXX').substr(0,3);
-    }
-    function codNome(n) {
-        const cons = n.replace(/[^BCDFGHJKLMNPQRSTVWXYZ]/gi,'').toUpperCase();
-        if (cons.length === 3) return cons;
-        if (cons.length > 3) return cons[0]+cons[2]+cons[3];
-        const vow = n.replace(/[^AEIOU]/gi,'').toUpperCase();
-        return (cons + vow + 'XXX').substr(0,3);
-    }
-    function codAnno(d) { return d.substr(2,2); }
-    function codMese(d) {
-        const m = parseInt(d.substr(5,2),10);
-        const tab = ['A','B','C','D','E','H','L','M','P','R','S','T'];
-        return tab[m-1];
-    }
-    function codGiorno(d, s) {
-        const g = parseInt(d.substr(8,2),10);
-        return (s === 'M' ? g : g + 40).toString().padStart(2,'0');
-    }
-    // codice catastale semplificato: prime 4 lettere
-    function codLuogo(l) { return (l + 'XXXX').substr(0,4); }
+    const codiceCatastale = codiciCatastali[luogoRaw] || 'Z999'; // fallback
 
-    const cf =
-        codCognome(cognome) +
-        codNome(nome) +
-        codAnno(data) +
-        codMese(data) +
-        codGiorno(data, sesso) +
-        codLuogo(luogo);
-    document.querySelector('[name="codice_fiscale"]').value = cf.toUpperCase();
+    try {
+        const cf = new CodiceFiscale({
+            name: nome,
+            surname: cognome,
+            gender: sesso,
+            day: dataStr.split('-')[2],
+            month: dataStr.split('-')[1],
+            year: dataStr.split('-')[0],
+            birthplace: codiceCatastale
+        });
+        document.querySelector('[name="codice_fiscale"]').value = cf.code;
+    } catch (e) {
+        console.warn('Errore calcolo CF:', e);
+    }
 }
 
-// trigger su ogni cambio
-['nome','cognome','luogo_nascita','data_nascita','sesso']
-.forEach(el => document.querySelector(`[name="${el}"]`).addEventListener('input', calcolaCF));
+// trigger ad ogni cambio
+['nome','cognome','data_nascita','sesso','luogo_nascita']
+.forEach(sel => document.querySelector(`[name="${sel}"]`).addEventListener('input', calcolaCF));
 </script>
 </body>
 </html>
