@@ -118,6 +118,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <label>Data di nascita</label>
             <input type="date" name="data_nascita" required>
+            <label>Sesso</label>
+<select name="sesso" id="sesso" required>
+    <option value="">-- Seleziona --</option>
+    <option value="M">Maschio</option>
+    <option value="F">Femmina</option>
+</select>
 
             <label>Codice fiscale</label>
             <input type="text" name="codice_fiscale" maxlength="16" required pattern="[A-Za-z0-9]{16}">
@@ -171,5 +177,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <a href="index.php" class="back">← Torna alla Home</a>
 </div>
+    <script>
+// Calcolo Codice Fiscale (semplificato)
+function calcolaCF() {
+    const nome = document.querySelector('[name="nome"]').value.trim();
+    const cognome = document.querySelector('[name="cognome"]').value.trim();
+    const luogo = document.querySelector('[name="luogo_nascita"]').value.trim().toUpperCase();
+    const data = document.querySelector('[name="data_nascita"]').value;
+    const sesso = document.querySelector('[name="sesso"]').value.toUpperCase();
+
+    if (!nome || !cognome || !data || !sesso || !luogo) return;
+
+    // funzione di codifica consonanti/vocali per cognome/nome
+    function codCognome(c) {
+        const consonanti = c.replace(/[^BCDFGHJKLMNPQRSTVWXYZ]/gi,'').toUpperCase();
+        if (consonanti.length >= 3) return consonanti.substr(0,3);
+        const vocali = c.replace(/[^AEIOU]/gi,'').toUpperCase();
+        return (consonanti + vocali + 'XXX').substr(0,3);
+    }
+    function codNome(n) {
+        const cons = n.replace(/[^BCDFGHJKLMNPQRSTVWXYZ]/gi,'').toUpperCase();
+        if (cons.length === 3) return cons;
+        if (cons.length > 3) return cons[0]+cons[2]+cons[3];
+        const vow = n.replace(/[^AEIOU]/gi,'').toUpperCase();
+        return (cons + vow + 'XXX').substr(0,3);
+    }
+    function codAnno(d) { return d.substr(2,2); }
+    function codMese(d) {
+        const m = parseInt(d.substr(5,2),10);
+        const tab = ['A','B','C','D','E','H','L','M','P','R','S','T'];
+        return tab[m-1];
+    }
+    function codGiorno(d, s) {
+        const g = parseInt(d.substr(8,2),10);
+        return (s === 'M' ? g : g + 40).toString().padStart(2,'0');
+    }
+    // codice catastale semplificato: prime 4 lettere
+    function codLuogo(l) { return (l + 'XXXX').substr(0,4); }
+
+    const cf =
+        codCognome(cognome) +
+        codNome(nome) +
+        codAnno(data) +
+        codMese(data) +
+        codGiorno(data, sesso) +
+        codLuogo(luogo);
+    document.querySelector('[name="codice_fiscale"]').value = cf.toUpperCase();
+}
+
+// trigger su ogni cambio
+['nome','cognome','luogo_nascita','data_nascita','sesso']
+.forEach(el => document.querySelector(`[name="${el}"]`).addEventListener('input', calcolaCF));
+</script>
 </body>
 </html>
