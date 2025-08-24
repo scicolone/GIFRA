@@ -5,7 +5,7 @@ $success = '';
 
 /* ---------- array codici catastali comuni italiani (estratto) ---------- */
 $comuni = [
-    'MILAZZO' => 'F157',
+    'MILAZZO' => 'F206',
     'ROMA'    => 'H501',
     'MILANO'  => 'F205',
     'NAPOLI'  => 'F839',
