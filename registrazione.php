@@ -1,21 +1,14 @@
 <?php
-require_once 'config.php';   // $pdo già definito
+require_once 'config.php';              // connessione PDO
+require_once 'lib/CodiceFiscale.php';   // libreria CF (da GitHub)
+
+use NigroSimone\CodiceFiscale;
+
 $error = '';
 $success = '';
 
-/* ---------- array codici catastali comuni italiani (estratto) ---------- */
-$comuni = [
-    'MILAZZO' => 'F206',
-    'ROMA'    => 'H501',
-    'MILANO'  => 'F205',
-    'NAPOLI'  => 'F839',
-    'PALERMO' => 'G273',
-    'CATANIA' => 'C351',
-    'MESSINA' => 'F158',
-    /* … aggiungi qui altri comuni se necessario … */
-];
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // campi base
     $nome      = trim($_POST['nome']);
     $cognome   = trim($_POST['cognome']);
     $luogo     = strtoupper(trim($_POST['luogo_nascita']));
@@ -30,20 +23,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password  = $_POST['password'];
     $ruolo     = $_POST['ruolo'];
 
-    // controllo univocità email
-    $stmt = $pdo->prepare('SELECT id FROM utenti WHERE email = ?');
-    $stmt->execute([$email]);
-    if ($stmt->fetch()) {
-        $error = 'Email già registrata.';
+    // validazione CF con libreria
+    $cfLib = new CodiceFiscale();
+    if (!$cfLib->validaCodiceFiscale($cf)) {
+        $error = 'Il Codice Fiscale inserito non è valido.';
     } else {
-        $hash = password_hash($password, PASSWORD_DEFAULT);
-        $stmt = $pdo->prepare(
-            'INSERT INTO utenti 
-             (nome, cognome, email, password, ruolo, stato_approvazione)
-             VALUES (?, ?, ?, ?, ?, "in_attesa")'
-        );
-        $stmt->execute([$nome, $cognome, $email, $hash, $ruolo]);
-        $success = 'Registrazione completata! Attendi l’approvazione del presidente o del segretario.';
+        // controllo univocità email
+        $stmt = $pdo->prepare('SELECT id FROM utenti WHERE email = ?');
+        $stmt->execute([$email]);
+        if ($stmt->fetch()) {
+            $error = 'Email già registrata.';
+        } else {
+            $hash = password_hash($password, PASSWORD_DEFAULT);
+            $stmt = $pdo->prepare(
+                'INSERT INTO utenti 
+                 (nome, cognome, email, password, ruolo, stato_approvazione)
+                 VALUES (?, ?, ?, ?, ?, "in_attesa")'
+            );
+            $stmt->execute([$nome, $cognome, $email, $hash, $ruolo]);
+            $success = 'Registrazione completata! Attendi l’approvazione del presidente o del segretario.';
+        }
     }
 }
 ?>
@@ -113,14 +112,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }, 7000);
         </script>
     <?php else: ?>
-        <form method="post" autocomplete="off">
+        <form method="post" autocomplete="off" id="formReg">
             <label>Nome</label>
-            <input type="text" name="nome" required>
+            <input type="text" name="nome" id="nome" required>
 
             <label>Cognome</label>
-            <input type="text" name="cognome" required>
+            <input type="text" name="cognome" id="cognome" required>
 
-            <label>Luogo di nascita</label>
+            <label>Luogo di nascita (es. MILAZZO)</label>
             <input type="text" name="luogo_nascita" id="luogo_nascita" required>
 
             <label>Provincia di nascita</label>
@@ -189,70 +188,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <a href="index.php" class="back">← Torna alla Home</a>
 </div>
 
-<!-- CALCOLO CF COMPLETO -->
+<!-- Auto-calcolo CF via libreria esterna -->
 <script>
-/* lista codici catastali (estesa se necessario) */
-const comuni = {
-    'MILAZZO' : 'F157',
-    'ROMA'    : 'H501',
-    'MILANO'  : 'F205',
-    'NAPOLI'  : 'F839',
-    'PALERMO' : 'G273',
-    'CATANIA' : 'C351',
-    'MESSINA' : 'F158'
-};
-
-/* ---------------- libreria CF completa ---------------- */
-function codCognome(c) {
-    const co = c.toUpperCase().replace(/[^BCDFGHJKLMNPQRSTVWXYZ]/g,'');
-    if (co.length >= 3) return co.substr(0,3);
-    const vo = c.toUpperCase().replace(/[^AEIOU]/g,'');
-    return (co + vo + 'XXX').substr(0,3);
-}
-function codNome(n) {
-    let co = n.toUpperCase().replace(/[^BCDFGHJKLMNPQRSTVWXYZ]/g,'');
-    if (co.length === 3) return co;
-    if (co.length > 3) return co[0]+co[2]+co[3];
-    const vo = n.toUpperCase().replace(/[^AEIOU]/g,'');
-    return (co + vo + 'XXX').substr(0,3);
-}
-function codAnno(d) { return d.substr(2,2); }
-function codMese(d) {
-    const m = parseInt(d.substr(5,2),10);
-    return "ABCDEHLMPRST"[m-1];
-}
-function codGiorno(d, s) {
-    const g = parseInt(d.substr(8,2),10);
-    return (s === 'M' ? g : g + 40).toString().padStart(2,'0');
-}
-function codLuogo(l) { return comuni[l.toUpperCase()] || 'Z999'; }
-
-function calcolaCF() {
-    const nome  = document.getElementById('nome')?.value || document.querySelector('[name="nome"]').value;
-    const cogn  = document.getElementById('cognome')?.value || document.querySelector('[name="cognome"]').value;
-    const luogo = document.getElementById('luogo_nascita').value.toUpperCase();
+/* 1) Se usi Composer: imposta endpoint PHP locale per calcolo CF
+   2) Se usi JS puro: scarica https://github.com/napolux/JSFiscalCode */
+/* Qui usiamo una chiamata AJAX veloce a un piccolo endpoint PHP.
+   Crea "calcola_cf.php" (vedi sotto) e cambia l'URL se necessario. */
+async function calcolaCF() {
+    const nome  = document.getElementById('nome').value.trim();
+    const cog   = document.getElementById('cognome').value.trim();
+    const luogo = document.getElementById('luogo_nascita').value.trim();
     const data  = document.getElementById('data_nascita').value;
-    const sesso = document.getElementById('sesso').value.toUpperCase();
+    const sex   = document.getElementById('sesso').value;
 
-    if (!nome || !cogn || !data || !sesso || !luogo) return;
+    if (!nome || !cog || !data || !sex || !luogo) return;
 
-    const cf =
-        codCognome(cogn) +
-        codNome(nome) +
-        codAnno(data) +
-        codMese(data) +
-        codGiorno(data, sesso) +
-        codLuogo(luogo);
-
-    document.getElementById('codice_fiscale').value = cf.toUpperCase();
+    const params = new URLSearchParams({nome:nome, cognome:cog, data, sesso:sex, luogo});
+    try {
+        const res = await fetch('calcola_cf.php?' + params);
+        const cf  = await res.text();
+        document.getElementById('codice_fiscale').value = cf.toUpperCase();
+    } catch(e) {/* ignora se endpoint non presente */}
 }
-
-/* trigger su cambio valori */
 ['nome','cognome','luogo_nascita','data_nascita','sesso']
-.forEach(n => {
-    const el = document.querySelector(`[name="${n}"]`);
-    if (el) el.addEventListener('input', calcolaCF);
-});
+.forEach(id => document.getElementById(id).addEventListener('input', calcolaCF));
 </script>
 </body>
 </html>
