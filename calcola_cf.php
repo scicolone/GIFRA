@@ -1,7 +1,5 @@
 <?php
-require_once __DIR__ . '/lib/CodiceFiscale.php';
-use NigroSimone\CodiceFiscale;
-
+require_once __DIR__ . '/lib/CF.php';   // la nostra libreria CF.php
 header('Content-Type: text/plain; charset=utf-8');
 
 $cognome = isset($_GET['cognome']) ? trim($_GET['cognome']) : '';
@@ -15,11 +13,11 @@ if (!$cognome || !$nome || !$data || !$sesso || !$luogo) {
     exit('Parametri mancanti');
 }
 
-// carica la lista ufficiale dei comuni con codice catastale
-$comuni = json_decode(file_get_contents('https://cdn.jsdelivr.net/npm/comuni-json@1.0.0/comuni.json'), true);
-$codice = '';
+// carica i dati ufficiali
+$comuni = json_decode(file_get_contents(__DIR__ . '/lib/comuni.json'), true);
+$codice = null;
 foreach ($comuni as $c) {
-    if (strcasecmp($c['nome'], $luogo) === 0) {
+    if (strcasecmp($c['denominazione'], $luogo) === 0) {
         $codice = $c['codiceCatastale'];
         break;
     }
@@ -29,11 +27,4 @@ if (!$codice) {
     exit('Comune non trovato');
 }
 
-$cf = new CodiceFiscale();
-$cf->setCognome($cognome)
-   ->setNome($nome)
-   ->setData($data)
-   ->setSesso($sesso)
-   ->setComune($codice);
-
-echo $cf->getCodiceFiscale();
+echo CF::calcola($cognome, $nome, $data, $sesso, $luogo);
