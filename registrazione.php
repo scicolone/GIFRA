@@ -1,48 +1,36 @@
 <?php
-require_once 'config.php';              // connessione PDO
-require_once 'lib/CodiceFiscale.php';   // libreria CF (da GitHub)
-
-use NigroSimone\CodiceFiscale;
-
+require_once 'config.php';   // $pdo già definito
 $error = '';
 $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // campi base
-    $nome      = trim($_POST['nome']);
-    $cognome   = trim($_POST['cognome']);
-    $luogo     = strtoupper(trim($_POST['luogo_nascita']));
-    $provN     = trim($_POST['provincia_nascita']);
-    $dataN     = $_POST['data_nascita'];
-    $sesso     = $_POST['sesso'];
-    $cf        = strtoupper(trim($_POST['codice_fiscale']));
-    $indirizzo = trim($_POST['indirizzo']);
-    $comune    = trim($_POST['comune_residenza']);
-    $provR     = trim($_POST['provincia_residenza']);
-    $email     = strtolower(trim($_POST['email']));
-    $password  = $_POST['password'];
-    $ruolo     = $_POST['ruolo'];
+    $nome     = trim($_POST['nome']);
+    $cognome  = trim($_POST['cognome']);
+    $luogo    = trim($_POST['luogo_nascita']);
+    $provN    = trim($_POST['provincia_nascita']);
+    $dataN    = $_POST['data_nascita'];
+    $cf       = strtoupper(trim($_POST['codice_fiscale']));
+    $indirizzo= trim($_POST['indirizzo']);
+    $comune   = trim($_POST['comune_residenza']);
+    $provR    = trim($_POST['provincia_residenza']);
+    $email    = strtolower(trim($_POST['email']));
+    $password = $_POST['password'];
+    $ruolo    = $_POST['ruolo'];   // stringa: genitore, allenatore, ecc.
 
-    // validazione CF con libreria
-    $cfLib = new CodiceFiscale();
-    if (!$cfLib->validaCodiceFiscale($cf)) {
-        $error = 'Il Codice Fiscale inserito non è valido.';
+    // controllo univocità email
+    $stmt = $pdo->prepare('SELECT id FROM utenti WHERE email = ?');
+    $stmt->execute([$email]);
+    if ($stmt->fetch()) {
+        $error = 'Email già registrata.';
     } else {
-        // controllo univocità email
-        $stmt = $pdo->prepare('SELECT id FROM utenti WHERE email = ?');
-        $stmt->execute([$email]);
-        if ($stmt->fetch()) {
-            $error = 'Email già registrata.';
-        } else {
-            $hash = password_hash($password, PASSWORD_DEFAULT);
-            $stmt = $pdo->prepare(
-                'INSERT INTO utenti 
-                 (nome, cognome, email, password, ruolo, stato_approvazione)
-                 VALUES (?, ?, ?, ?, ?, "in_attesa")'
-            );
-            $stmt->execute([$nome, $cognome, $email, $hash, $ruolo]);
-            $success = 'Registrazione completata! Attendi l’approvazione del presidente o del segretario.';
-        }
+        $hash = password_hash($password, PASSWORD_DEFAULT);
+        $stmt = $pdo->prepare(
+            'INSERT INTO utenti (nome, cognome, email, password, ruolo, stato_approvazione)
+             VALUES (?, ?, ?, ?, ?, "in_attesa")'
+        );
+        $stmt->execute([$nome, $cognome, $email, $hash, $ruolo]);
+        $success = 'Registrazione completata! Attendi l’approvazione del presidente o del segretario.';
     }
 }
 ?>
@@ -91,7 +79,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         button:hover{background:#a01515}
         .error{color:#b71c1c;margin-bottom:15px}
         .success{color:#0d47a1;margin-bottom:15px}
-        .back{display:inline-block;margin-top:15px;color:#0d47a1;text-decoration:none}
+        .back{
+            display:inline-block;margin-top:15px;color:#0d47a1;text-decoration:none
+        }
     </style>
 </head>
 <body>
@@ -112,31 +102,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }, 7000);
         </script>
     <?php else: ?>
-        <form method="post" autocomplete="off" id="formReg">
+        <!-- FORM COMPLETO -->
+        <form method="post" autocomplete="off">
             <label>Nome</label>
-            <input type="text" name="nome" id="nome" required>
+            <input type="text" name="nome" required>
 
             <label>Cognome</label>
-            <input type="text" name="cognome" id="cognome" required>
+            <input type="text" name="cognome" required>
 
-            <label>Luogo di nascita (es. MILAZZO)</label>
-            <input type="text" name="luogo_nascita" id="luogo_nascita" required>
+            <label>Luogo di nascita</label>
+            <input type="text" name="luogo_nascita" required>
 
             <label>Provincia di nascita</label>
             <input type="text" name="provincia_nascita" maxlength="2" required>
 
             <label>Data di nascita</label>
-            <input type="date" name="data_nascita" id="data_nascita" required>
-
-            <label>Sesso</label>
-            <select name="sesso" id="sesso" required>
-                <option value="">-- Seleziona --</option>
-                <option value="M">Maschio</option>
-                <option value="F">Femmina</option>
-            </select>
+            <input type="date" name="data_nascita" required>
 
             <label>Codice fiscale</label>
-            <input type="text" name="codice_fiscale" id="codice_fiscale" maxlength="16" required pattern="[A-Za-z0-9]{16}">
+            <input type="text" name="codice_fiscale" maxlength="16" required pattern="[A-Za-z0-9]{16}">
 
             <label>Indirizzo</label>
             <input type="text" name="indirizzo" required>
@@ -187,31 +171,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <a href="index.php" class="back">← Torna alla Home</a>
 </div>
-
-<!-- Auto-calcolo CF via libreria esterna -->
-<script>
-/* 1) Se usi Composer: imposta endpoint PHP locale per calcolo CF
-   2) Se usi JS puro: scarica https://github.com/napolux/JSFiscalCode */
-/* Qui usiamo una chiamata AJAX veloce a un piccolo endpoint PHP.
-   Crea "calcola_cf.php" (vedi sotto) e cambia l'URL se necessario. */
-async function calcolaCF() {
-    const nome  = document.getElementById('nome').value.trim();
-    const cog   = document.getElementById('cognome').value.trim();
-    const luogo = document.getElementById('luogo_nascita').value.trim();
-    const data  = document.getElementById('data_nascita').value;
-    const sex   = document.getElementById('sesso').value;
-
-    if (!nome || !cog || !data || !sex || !luogo) return;
-
-    const params = new URLSearchParams({nome:nome, cognome:cog, data, sesso:sex, luogo});
-    try {
-        const res = await fetch('calcola_cf.php?' + params);
-        const cf  = await res.text();
-        document.getElementById('codice_fiscale').value = cf.toUpperCase();
-    } catch(e) {/* ignora se endpoint non presente */}
-}
-['nome','cognome','luogo_nascita','data_nascita','sesso']
-.forEach(id => document.getElementById(id).addEventListener('input', calcolaCF));
-</script>
 </body>
 </html>
