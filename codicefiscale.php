@@ -76,7 +76,7 @@ class CodiceFiscale {
         // Cerca il comune
         foreach ($comuni as $comune) {
             if (strtoupper($comune['nome']) == strtoupper($luogo_nascita)) {
-                return $comune['codice'];
+                return $comune['codicecatastale'];
             }
         }
         
