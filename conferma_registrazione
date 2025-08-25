@@ -1,0 +1,62 @@
+<?php
+session_start();
+
+if (!isset($_SESSION['dati_registrazione'])) {
+    header('Location: registrazione.php');
+    exit();
+}
+
+$dati = $_SESSION['dati_registrazione'];
+?>
+
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Conferma Registrazione</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Conferma Dati di Registrazione</h1>
+        
+        <form method="post" action="salva_registrazione.php">
+            <div class="form-group">
+                <label>Nome:</label>
+                <input type="text" name="nome" value="<?= htmlspecialchars($dati['nome']) ?>" readonly>
+            </div>
+            
+            <div class="form-group">
+                <label>Cognome:</label>
+                <input type="text" name="cognome" value="<?= htmlspecialchars($dati['cognome']) ?>" readonly>
+            </div>
+            
+            <div class="form-group">
+                <label>Data di nascita:</label>
+                <input type="date" name="data_nascita" value="<?= htmlspecialchars($dati['data_nascita']) ?>" readonly>
+            </div>
+            
+            <div class="form-group">
+                <label>Sesso:</label>
+                <input type="text" name="sesso" value="<?= htmlspecialchars($dati['sesso']) ?>" readonly>
+            </div>
+            
+            <div class="form-group">
+                <label>Luogo di nascita:</label>
+                <input type="text" name="luogo_nascita" value="<?= htmlspecialchars($dati['luogo_nascita']) ?>" readonly>
+            </div>
+            
+            <div class="form-group">
+                <label>Codice Fiscale:</label>
+                <input type="text" name="codice_fiscale" value="<?= htmlspecialchars($dati['cf_calcolato']) ?>">
+                <small>Verificare e correggere se necessario</small>
+            </div>
+            
+            <!-- Altri campi del modulo -->
+            
+            <button type="submit" class="btn btn-primary">Conferma Registrazione</button>
+            <a href="registrazione.php" class="btn btn-secondary">Modifica Dati</a>
+        </form>
+    </div>
+</body>
+</html>
