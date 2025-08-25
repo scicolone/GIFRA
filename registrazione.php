@@ -1,39 +1,3 @@
-<?php
-require_once 'config.php';   // $pdo già definito
-$error = '';
-$success = '';
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // campi base
-    $nome     = trim($_POST['nome']);
-    $cognome  = trim($_POST['cognome']);
-    $luogo    = trim($_POST['luogo_nascita']);
-    $provN    = trim($_POST['provincia_nascita']);
-    $dataN    = $_POST['data_nascita'];
-    $cf       = strtoupper(trim($_POST['codice_fiscale']));
-    $indirizzo= trim($_POST['indirizzo']);
-    $comune   = trim($_POST['comune_residenza']);
-    $provR    = trim($_POST['provincia_residenza']);
-    $email    = strtolower(trim($_POST['email']));
-    $password = $_POST['password'];
-    $ruolo    = $_POST['ruolo'];   // stringa: genitore, allenatore, ecc.
-
-    // controllo univocità email
-    $stmt = $pdo->prepare('SELECT id FROM utenti WHERE email = ?');
-    $stmt->execute([$email]);
-    if ($stmt->fetch()) {
-        $error = 'Email già registrata.';
-    } else {
-        $hash = password_hash($password, PASSWORD_DEFAULT);
-        $stmt = $pdo->prepare(
-            'INSERT INTO utenti (nome, cognome, email, password, ruolo, stato_approvazione)
-             VALUES (?, ?, ?, ?, ?, "in_attesa")'
-        );
-        $stmt->execute([$nome, $cognome, $email, $hash, $ruolo]);
-        $success = 'Registrazione completata! Attendi l’approvazione del presidente o del segretario.';
-    }
-}
-?>
 <!DOCTYPE html>
 <html lang="it">
 <head>
@@ -56,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             background:#fff;
             color:#333;
             border-radius:10px;
-            max-width:480px;
+            max-width:600px;
             width:100%;
             padding:40px 35px;
             box-shadow:0 8px 20px rgba(0,0,0,.25);
@@ -65,6 +29,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         label{display:block;font-weight:600;margin-bottom:4px;margin-top:15px}
         input,select{
             width:100%;padding:10px;border:1px solid #ccc;border-radius:4px;font-size:15px
+        }
+        .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .form-group {
+            flex: 1;
         }
         .ruoli{display:flex;justify-content:space-around;flex-wrap:wrap;margin:20px 0}
         .ruolo-item{display:flex;flex-direction:column;align-items:center;cursor:pointer}
@@ -81,6 +53,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .success{color:#0d47a1;margin-bottom:15px}
         .back{
             display:inline-block;margin-top:15px;color:#0d47a1;text-decoration:none
+        }
+        .cf-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .cf-container input {
+            flex: 1;
+        }
+        .cf-container button {
+            width: auto;
+            padding: 10px;
+            margin-top: 0;
+            background: #0d47a1;
+        }
+        .cf-container button:hover {
+            background: #083c8a;
         }
     </style>
 </head>
@@ -103,33 +92,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </script>
     <?php else: ?>
         <!-- FORM COMPLETO -->
-        <form method="post" autocomplete="off">
-            <label>Nome</label>
-            <input type="text" name="nome" required>
+        <form method="post" autocomplete="off" id="registrationForm">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Nome</label>
+                    <input type="text" name="nome" id="nome" required>
+                </div>
+                <div class="form-group">
+                    <label>Cognome</label>
+                    <input type="text" name="cognome" id="cognome" required>
+                </div>
+            </div>
 
-            <label>Cognome</label>
-            <input type="text" name="cognome" required>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Sesso</label>
+                    <select name="sesso" id="sesso" required>
+                        <option value="">Seleziona</option>
+                        <option value="M">Maschio</option>
+                        <option value="F">Femmina</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Data di nascita</label>
+                    <input type="date" name="data_nascita" id="data_nascita" required>
+                </div>
+            </div>
 
-            <label>Luogo di nascita</label>
-            <input type="text" name="luogo_nascita" required>
-
-            <label>Provincia di nascita</label>
-            <input type="text" name="provincia_nascita" maxlength="2" required>
-
-            <label>Data di nascita</label>
-            <input type="date" name="data_nascita" required>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Luogo di nascita</label>
+                    <input type="text" name="luogo_nascita" id="luogo_nascita" required>
+                </div>
+                <div class="form-group">
+                    <label>Provincia di nascita</label>
+                    <input type="text" name="provincia_nascita" id="provincia_nascita" maxlength="2" required>
+                </div>
+            </div>
 
             <label>Codice fiscale</label>
-            <input type="text" name="codice_fiscale" maxlength="16" required pattern="[A-Za-z0-9]{16}">
+            <div class="cf-container">
+                <input type="text" name="codice_fiscale" id="codice_fiscale" maxlength="16" required pattern="[A-Za-z0-9]{16}">
+                <button type="button" id="calcolaCF">Calcola</button>
+            </div>
 
             <label>Indirizzo</label>
             <input type="text" name="indirizzo" required>
 
-            <label>Comune di residenza</label>
-            <input type="text" name="comune_residenza" required>
-
-            <label>Provincia di residenza</label>
-            <input type="text" name="provincia_residenza" maxlength="2" required>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Comune di residenza</label>
+                    <input type="text" name="comune_residenza" required>
+                </div>
+                <div class="form-group">
+                    <label>Provincia di residenza</label>
+                    <input type="text" name="provincia_residenza" maxlength="2" required>
+                </div>
+            </div>
 
             <label>Email</label>
             <input type="email" name="email" required>
@@ -171,5 +190,118 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <a href="index.php" class="back">← Torna alla Home</a>
 </div>
+
+<script>
+// Funzione per calcolare il codice fiscale
+function calcolaCodiceFiscale() {
+    const nome = document.getElementById('nome').value.toUpperCase();
+    const cognome = document.getElementById('cognome').value.toUpperCase();
+    const sesso = document.getElementById('sesso').value;
+    const dataNascita = document.getElementById('data_nascita').value;
+    const luogoNascita = document.getElementById('luogo_nascita').value.toUpperCase();
+    const provinciaNascita = document.getElementById('provincia_nascita').value.toUpperCase();
+    
+    if (!nome || !cognome || !sesso || !dataNascita || !luogoNascita || !provinciaNascita) {
+        alert('Compila tutti i campi necessari per calcolare il codice fiscale: Nome, Cognome, Sesso, Data di nascita, Luogo e Provincia di nascita.');
+        return;
+    }
+    
+    // Estrai le parti della data di nascita
+    const data = new Date(dataNascita);
+    const giorno = data.getDate();
+    const mese = data.getMonth() + 1; // I mesi partono da 0
+    const anno = data.getFullYear().toString().substr(-2);
+    
+    // Calcola le consonanti del cognome
+    let consCognome = cognome.replace(/[AEIOU ]/gi, '');
+    let vocCognome = cognome.replace(/[BCDFGHJKLMNPQRSTVWXYZ ]/gi, '');
+    
+    // Se le consonanti sono meno di 3, aggiungi le vocali e poi le X
+    let parteCognome = (consCognome + vocCognome + 'XXX').substr(0, 3);
+    
+    // Calcola le consonanti del nome
+    let consNome = nome.replace(/[AEIOU ]/gi, '');
+    let vocNome = nome.replace(/[BCDFGHJKLMNPQRSTVWXYZ ]/gi, '');
+    
+    let parteNome;
+    if (consNome.length >= 4) {
+        parteNome = consNome.charAt(0) + consNome.charAt(2) + consNome.charAt(3);
+    } else {
+        parteNome = (consNome + vocNome + 'XXX').substr(0, 3);
+    }
+    
+    // Calcola l'anno di nascita (ultime due cifre)
+    const parteAnno = anno;
+    
+    // Calcola il mese di nascita (lettera corrispondente)
+    const lettereMesi = ['A','B','C','D','E','H','L','M','P','R','S','T'];
+    const parteMese = lettereMesi[mese - 1];
+    
+    // Calcola il giorno di nascita (con aggiunta di 40 per le donne)
+    let parteGiorno = giorno < 10 ? '0' + giorno : giorno.toString();
+    if (sesso === 'F') {
+        parteGiorno = (parseInt(parteGiorno) + 40).toString();
+    }
+    
+    // Per il codice catastale, in un'implementazione reale si dovrebbe
+    // interrogare un database di comuni. Per ora usiamo una semplificazione
+    let parteLuogo = (luogoNascita.substring(0, 3) + provinciaNascita).toUpperCase();
+    
+    // Costruisci il codice fiscale parziale (manca il carattere di controllo)
+    const cfParziale = parteCognome + parteNome + parteAnno + parteMese + parteGiorno + parteLuogo;
+    
+    // Calcola il carattere di controllo (algoritmo semplificato)
+    // In un'implementazione reale, questo sarebbe più complesso
+    const caratteriDispari = {
+        '0':1, '1':0, '2':5, '3':7, '4':9, '5':13, '6':15, '7':17, '8':19, '9':21,
+        'A':1, 'B':0, 'C':5, 'D':7, 'E':9, 'F':13, 'G':15, 'H':17, 'I':19, 'J':21,
+        'K':2, 'L':4, 'M':18, 'N':20, 'O':11, 'P':3, 'Q':6, 'R':8, 'S':12, 'T':14,
+        'U':16, 'V':10, 'W':22, 'X':25, 'Y':24, 'Z':23
+    };
+    
+    const caratteriPari = {
+        '0':0, '1':1, '2':2, '3':3, '4':4, '5':5, '6':6, '7':7, '8':8, '9':9,
+        'A':0, 'B':1, 'C':2, 'D':3, 'E':4, 'F':5, 'G':6, 'H':7, 'I':8, 'J':9,
+        'K':10, 'L':11, 'M':12, 'N':13, 'O':14, 'P':15, 'Q':16, 'R':17, 'S':18, 'T':19,
+        'U':20, 'V':21, 'W':22, 'X':23, 'Y':24, 'Z':25
+    };
+    
+    const carattereControllo = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    
+    let somma = 0;
+    for (let i = 0; i < cfParziale.length; i++) {
+        const c = cfParziale.charAt(i);
+        if ((i + 1) % 2 === 0) { // Caratteri pari
+            somma += caratteriPari[c];
+        } else { // Caratteri dispari
+            somma += caratteriDispari[c];
+        }
+    }
+    
+    const resto = somma % 26;
+    const controllo = carattereControllo.charAt(resto);
+    
+    // Codice fiscale completo
+    const codiceFiscale = cfParziale + controllo;
+    
+    // Inserisci nel campo
+    document.getElementById('codice_fiscale').value = codiceFiscale;
+}
+
+// Aggiungi l'event listener al pulsante di calcolo
+document.getElementById('calcolaCF').addEventListener('click', calcolaCodiceFiscale);
+
+// Aggiungi anche il calcolo automatico quando tutti i campi sono compilati
+const campiCF = ['nome', 'cognome', 'sesso', 'data_nascita', 'luogo_nascita', 'provincia_nascita'];
+campiCF.forEach(campo => {
+    document.getElementById(campo).addEventListener('change', function() {
+        // Verifica se tutti i campi necessari sono compilati
+        const tuttiCompilati = campiCF.every(id => document.getElementById(id).value);
+        if (tuttiCompilati && !document.getElementById('codice_fiscale').value) {
+            calcolaCodiceFiscale();
+        }
+    });
+});
+</script>
 </body>
 </html>
