@@ -1,3 +1,41 @@
+<?php
+require_once 'config.php';   // $pdo già definito
+
+// Inizializzo le variabili per evitare gli errori di "Undefined variable"
+$error = '';
+$success = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // campi base
+    $nome     = trim($_POST['nome']);
+    $cognome  = trim($_POST['cognome']);
+    $luogo    = trim($_POST['luogo_nascita']);
+    $provN    = trim($_POST['provincia_nascita']);
+    $dataN    = $_POST['data_nascita'];
+    $cf       = strtoupper(trim($_POST['codice_fiscale']));
+    $indirizzo= trim($_POST['indirizzo']);
+    $comune   = trim($_POST['comune_residenza']);
+    $provR    = trim($_POST['provincia_residenza']);
+    $email    = strtolower(trim($_POST['email']));
+    $password = $_POST['password'];
+    $ruolo    = $_POST['ruolo'];   // stringa: genitore, allenatore, ecc.
+
+    // controllo univocità email
+    $stmt = $pdo->prepare('SELECT id FROM utenti WHERE email = ?');
+    $stmt->execute([$email]);
+    if ($stmt->fetch()) {
+        $error = 'Email già registrata.';
+    } else {
+        $hash = password_hash($password, PASSWORD_DEFAULT);
+        $stmt = $pdo->prepare(
+            'INSERT INTO utenti (nome, cognome, email, password, ruolo, stato_approvazione)
+             VALUES (?, ?, ?, ?, ?, "in_attesa")'
+        );
+        $stmt->execute([$nome, $cognome, $email, $hash, $ruolo]);
+        $success = 'Registrazione completata! Attendi l\'approvazione del presidente o del segretario.';
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="it">
 <head>
@@ -282,7 +320,7 @@ function calcolaCodiceFiscale() {
     const controllo = carattereControllo.charAt(resto);
     
     // Codice fiscale completo
-    const codiceFiscale = cfParziale + controllo;
+    const codiceFiscale = cfParziale + controle;
     
     // Inserisci nel campo
     document.getElementById('codice_fiscale').value = codiceFiscale;
